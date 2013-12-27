@@ -6,11 +6,83 @@ catch err
   console.log '\nYou must npm install q in order to use q-ter\n'
   throw err
 
-exports.parallel = (obj) ->
+module.exports = $q = {}
+
+$q.parallel = (obj) ->
   res = {}
   q.all(
     Object.keys(obj).map (k) ->
-      q.when(obj[k]).then (v) ->
+      q()
+      .then ->
+        v = obj[k]
+        return v() if typeof v is 'function'
+        q.when(v)
+      .then (v) ->
         res[k] = v
   ).then ->
+    res
+
+$q.until = (iterator, predicate) ->
+  d = q.defer()
+  
+  step = ->
+    q()
+    .then ->
+      return iterator() if typeof iterator is 'function'
+      q.when(iterator)
+    .then (res) ->
+      return d.resolve() if predicate(res)
+      step()
+  
+  step()
+  .catch (err) ->
+    d.reject(err)
+  
+  d.promise
+
+auto_iteration = (obj, res) ->
+  keys = []
+  left_over_keys = []
+  for k, v of obj
+    if Array.isArray(v)
+      if v.slice(0, -1).every((kk) -> res[kk]?)
+        keys.push(k)
+      else
+        left_over_keys.push(k)
+    else
+      keys.push(k)
+  
+  throw new Error('Unreachable prerequisites') if keys.length is 0 and left_over_keys.length > 0
+  
+  q.all(
+    keys.map (k) ->
+      q()
+      .then ->
+        v = obj[k]
+        if Array.isArray(v)
+          args = v.slice(0, -1).map((kk) -> res[kk])
+          fn = v[v.length - 1]
+        else
+          args = []
+          fn = v
+        
+        return fn.apply(null, args) if typeof fn is 'function'
+        q.when(fn)
+      .then (v) ->
+        res[k] = v
+  ).then ->
+    delete obj[k] for k in keys
+    left_over_keys
+
+$q.auto = (obj) ->
+  res = {}
+  
+  $q.until(
+    ->
+      auto_iteration(obj, res)
+  ,
+    (left_over_keys) ->
+      left_over_keys.length is 0
+  )
+  .then ->
     res
