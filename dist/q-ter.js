@@ -13,6 +13,18 @@
 
   module.exports = $q = {};
 
+  $q.map = function(arr, iter) {
+    var res;
+    res = Array(arr.length);
+    return q.all(arr.map(function(item, idx) {
+      return q.when(iter(item)).then(function(data) {
+        return res[idx] = data;
+      });
+    })).then(function() {
+      return res;
+    });
+  };
+
   $q.parallel = function(obj) {
     var res;
     res = {};

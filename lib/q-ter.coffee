@@ -8,6 +8,18 @@ catch err
 
 module.exports = $q = {}
 
+$q.map = (arr, iter) ->
+  res = Array(arr.length)
+  q.all(
+    arr.map (item, idx) ->
+      q.when(iter(item)).then (data) ->
+        res[idx] = data
+  ).then ->
+    res
+
+# $q.reduce = (arr, iter, init) ->
+#   
+
 $q.parallel = (obj) ->
   res = {}
   q.all(

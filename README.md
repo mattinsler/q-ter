@@ -13,6 +13,18 @@ $ npm install --save q-ter
 ```javascript
 var $q = require('q-ter');
 
+$q.map(['foo', 'bar', 'baz'], function(word) {
+  return word.length;
+}).then(function(lengths) {
+  console.log(Math.max.apply(Math, lengths));
+});
+
+$q.reduce(['foo', 'bar', 'baz], function(agg, word) {
+  return agg + word.length;
+}, 0).then(function(agg_length) {
+  console.log(agg_length);
+});
+
 $q.parallel({
   foo: function() {
     return 'foo';
