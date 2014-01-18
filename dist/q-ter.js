@@ -25,6 +25,41 @@
     });
   };
 
+  $q.each = function(arr, iter, slice) {
+    var d, idx, len, not_done, running, step;
+    if (slice == null) {
+      slice = -1;
+    }
+    d = q.defer();
+    idx = 0;
+    len = arr.length;
+    not_done = arr.length;
+    running = 0;
+    if (slice <= 0) {
+      slice = len;
+    }
+    step = function() {
+      if (running === slice) {
+        return;
+      }
+      if (not_done === 0 && running === 0) {
+        return d.resolve();
+      }
+      if (idx === len) {
+        return;
+      }
+      ++running;
+      q.when(iter(arr[idx++])).then(function() {
+        --running;
+        --not_done;
+        return step();
+      });
+      return step();
+    };
+    step();
+    return d.promise;
+  };
+
   $q.parallel = function(obj) {
     var res;
     res = {};

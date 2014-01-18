@@ -20,6 +20,31 @@ $q.map = (arr, iter) ->
 # $q.reduce = (arr, iter, init) ->
 #   
 
+$q.each = (arr, iter, slice = -1) ->
+  d = q.defer()
+  
+  idx = 0
+  len = arr.length
+  not_done = arr.length
+  running = 0
+  slice = len if slice <= 0
+  
+  step = ->
+    return if running is slice
+    return d.resolve() if not_done is 0 and running is 0
+    return if idx is len
+        
+    ++running
+    q.when(iter(arr[idx++])).then ->
+      --running
+      --not_done
+      step()
+    step()
+  
+  step()
+  
+  d.promise
+
 $q.parallel = (obj) ->
   res = {}
   q.all(
