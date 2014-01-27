@@ -109,7 +109,7 @@
       v = obj[k];
       if (Array.isArray(v)) {
         if (v.slice(0, -1).every(function(kk) {
-          return res[kk] != null;
+          return res.hasOwnProperty(kk);
         })) {
           keys.push(k);
         } else {
@@ -120,7 +120,7 @@
       }
     }
     if (keys.length === 0 && left_over_keys.length > 0) {
-      throw new Error('Unreachable prerequisites');
+      throw new Error('Unreachable prerequisites:' + left_over_keys.join(', '));
     }
     return q.all(keys.map(function(k) {
       return q().then(function() {

@@ -82,14 +82,17 @@ auto_iteration = (obj, res) ->
   left_over_keys = []
   for k, v of obj
     if Array.isArray(v)
-      if v.slice(0, -1).every((kk) -> res[kk]?)
+      if v.slice(0, -1).every((kk) -> res.hasOwnProperty(kk))
         keys.push(k)
       else
         left_over_keys.push(k)
     else
       keys.push(k)
   
-  throw new Error('Unreachable prerequisites') if keys.length is 0 and left_over_keys.length > 0
+  # console.log obj
+  # console.log keys, left_over_keys
+  
+  throw new Error('Unreachable prerequisites:' + left_over_keys.join(', ')) if keys.length is 0 and left_over_keys.length > 0
   
   q.all(
     keys.map (k) ->
