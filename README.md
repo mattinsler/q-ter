@@ -19,7 +19,7 @@ $q.map(['foo', 'bar', 'baz'], function(word) {
   console.log(Math.max.apply(Math, lengths));
 });
 
-$q.reduce(['foo', 'bar', 'baz], function(agg, word) {
+$q.reduce(['foo', 'bar', 'baz'], function(agg, word) {
   return agg + word.length;
 }, 0).then(function(agg_length) {
   console.log(agg_length);
