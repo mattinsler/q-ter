@@ -1,5 +1,5 @@
 (function() {
-  var $q, auto_iteration, err, path, q;
+  var $q, auto_iteration, err, is_dependency_method, path, q;
 
   path = require('path');
 
@@ -101,13 +101,17 @@
     return d.promise;
   };
 
+  is_dependency_method = function(v) {
+    return Array.isArray(v) && typeof v[v.length - 1] === 'function';
+  };
+
   auto_iteration = function(obj, res) {
     var k, keys, left_over_keys, v;
     keys = [];
     left_over_keys = [];
     for (k in obj) {
       v = obj[k];
-      if (Array.isArray(v)) {
+      if (is_dependency_method(v)) {
         if (v.slice(0, -1).every(function(kk) {
           return res.hasOwnProperty(kk);
         })) {
@@ -126,7 +130,7 @@
       return q().then(function() {
         var args, fn;
         v = obj[k];
-        if (Array.isArray(v)) {
+        if (is_dependency_method(v)) {
           args = v.slice(0, -1).map(function(kk) {
             return res[kk];
           });

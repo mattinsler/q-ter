@@ -77,11 +77,14 @@ $q.until = (iterator, predicate) ->
   
   d.promise
 
+is_dependency_method = (v) ->
+  (Array.isArray(v) and typeof v[v.length - 1] is 'function')
+
 auto_iteration = (obj, res) ->
   keys = []
   left_over_keys = []
   for k, v of obj
-    if Array.isArray(v)
+    if is_dependency_method(v)
       if v.slice(0, -1).every((kk) -> res.hasOwnProperty(kk))
         keys.push(k)
       else
@@ -89,7 +92,6 @@ auto_iteration = (obj, res) ->
     else
       keys.push(k)
   
-  # console.log obj
   # console.log keys, left_over_keys
   
   throw new Error('Unreachable prerequisites:' + left_over_keys.join(', ')) if keys.length is 0 and left_over_keys.length > 0
@@ -99,7 +101,7 @@ auto_iteration = (obj, res) ->
       q()
       .then ->
         v = obj[k]
-        if Array.isArray(v)
+        if is_dependency_method(v)
           args = v.slice(0, -1).map((kk) -> res[kk])
           fn = v[v.length - 1]
         else
@@ -112,6 +114,8 @@ auto_iteration = (obj, res) ->
         res[k] = v
   ).then ->
     delete obj[k] for k in keys
+    # console.log obj
+    # console.log res
     left_over_keys
 
 $q.auto = (obj) ->
