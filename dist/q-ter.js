@@ -1,10 +1,11 @@
 (function() {
-  var $q, auto_iteration, err, is_dependency_method, path, q;
+  var $q, auto_iteration, err, is_dependency_method, path, q, qqueue;
 
   path = require('path');
 
   try {
     q = require(path.join(process.cwd(), 'node_modules', 'q'));
+    qqueue = require(path.join(process.cwd(), 'node_modules', 'q/queue'));
   } catch (_error) {
     err = _error;
     console.log('\nYou must npm install q in order to use q-ter\n');
@@ -166,6 +167,35 @@
     }).then(function() {
       return res;
     });
+  };
+
+  $q.queue = function() {
+    var items, process, workers;
+    items = new qqueue();
+    workers = new qqueue();
+    process = function() {
+      return $q.parallel({
+        item: items.get(),
+        worker: workers.get()
+      }).then(function(data) {
+        q.when(data.worker(data.item))["catch"](function(err) {
+          console.log('CAUGHT AN ERROR. Should put an option here to stop on error if you want.');
+          return console.log(err.stack);
+        })["finally"](function() {
+          return workers.put(data.worker);
+        });
+        return process();
+      });
+    };
+    process();
+    return {
+      push: function(item) {
+        return items.put(item);
+      },
+      poll: function(fn) {
+        return workers.put(fn);
+      }
+    };
   };
 
 }).call(this);

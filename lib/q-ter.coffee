@@ -2,6 +2,7 @@ path = require 'path'
 
 try
   q = require path.join(process.cwd(), 'node_modules', 'q')
+  qqueue = require path.join(process.cwd(), 'node_modules', 'q/queue')
 catch err
   console.log '\nYou must npm install q in order to use q-ter\n'
   throw err
@@ -130,3 +131,38 @@ $q.auto = (obj) ->
   )
   .then ->
     res
+
+# want to add:
+# - timeout
+# - concurrency level
+# - error action
+# - start/stop
+$q.queue = ->
+  items = new qqueue()
+  workers = new qqueue()
+
+  process = ->
+    $q.parallel(
+      item: items.get()
+      worker: workers.get()
+    )
+    .then (data) ->
+      q.when(data.worker(data.item))
+      .catch (err) ->
+        console.log 'CAUGHT AN ERROR. Should put an option here to stop on error if you want.'
+        # thoughts are:
+        # - re-queue the item
+        # - don't re-queue the worker
+        # - completely stop everything
+        console.log err.stack
+      .finally ->
+        workers.put(data.worker)
+    
+      process()
+
+  process()
+
+  {
+    push: (item) -> items.put(item)
+    poll: (fn) -> workers.put(fn)
+  }
