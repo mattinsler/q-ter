@@ -1,7 +1,9 @@
 (function() {
-  var $q, auto_iteration, err, is_dependency_method, path, q, qqueue;
+  var $q, EventEmitter, auto_iteration, err, is_dependency_method, path, q, qqueue;
 
   path = require('path');
+
+  EventEmitter = require('events').EventEmitter;
 
   try {
     q = require(path.join(process.cwd(), 'node_modules', 'q'));
@@ -170,32 +172,39 @@
   };
 
   $q.queue = function() {
-    var items, process, workers;
-    items = new qqueue();
-    workers = new qqueue();
-    process = function() {
-      return $q.parallel({
-        item: items.get(),
-        worker: workers.get()
-      }).then(function(data) {
-        q.when(data.worker(data.item))["catch"](function(err) {
-          console.log('CAUGHT AN ERROR. Should put an option here to stop on error if you want.');
-          return console.log(err.stack);
-        })["finally"](function() {
-          return workers.put(data.worker);
-        });
-        return process();
-      });
-    };
-    process();
-    return {
-      push: function(item) {
-        return items.put(item);
-      },
-      poll: function(fn) {
-        return workers.put(fn);
+    var check, deferreds, items, queue;
+    items = [];
+    deferreds = [];
+    queue = new EventEmitter();
+    check = function() {
+      var d, i;
+      if (items.length === 0 || deferreds.length === 0) {
+        return;
       }
+      i = items.pop();
+      d = deferreds.pop();
+      if (items.length === 0) {
+        d.promise.then(function() {
+          return queue.emit('flush');
+        });
+      }
+      return d.resolve(i);
     };
+    queue.push = function(item) {
+      items.push(item);
+      return setTimeout(check);
+    };
+    queue.pop = function() {
+      var d;
+      d = q.defer();
+      deferreds.push(d);
+      setTimeout(check);
+      return d.promise;
+    };
+    queue.__defineGetter__('length', function() {
+      return items.length;
+    });
+    return queue;
   };
 
 }).call(this);

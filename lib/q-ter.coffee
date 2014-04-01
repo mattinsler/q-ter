@@ -1,4 +1,5 @@
 path = require 'path'
+{EventEmitter} = require 'events'
 
 try
   q = require path.join(process.cwd(), 'node_modules', 'q')
@@ -137,32 +138,97 @@ $q.auto = (obj) ->
 # - concurrency level
 # - error action
 # - start/stop
+# $q.queue = ->
+#   items = new qqueue()
+#   workers = new qqueue()
+# 
+#   process = ->
+#     $q.parallel(
+#       item: items.get()
+#       worker: workers.get()
+#     )
+#     .then (data) ->
+#       q.when(data.worker(data.item))
+#       .catch (err) ->
+#         console.log 'CAUGHT AN ERROR. Should put an option here to stop on error if you want.'
+#         # thoughts are:
+#         # - re-queue the item
+#         # - don't re-queue the worker
+#         # - completely stop everything
+#         console.log err.stack
+#       .finally ->
+#         workers.put(data.worker)
+#     
+#       process()
+# 
+#   process()
+# 
+#   {
+#     push: (item) -> items.put(item)
+#     poll: (fn) -> workers.put(fn)
+#   }
+
+
+
+
 $q.queue = ->
-  items = new qqueue()
-  workers = new qqueue()
-
-  process = ->
-    $q.parallel(
-      item: items.get()
-      worker: workers.get()
-    )
-    .then (data) ->
-      q.when(data.worker(data.item))
-      .catch (err) ->
-        console.log 'CAUGHT AN ERROR. Should put an option here to stop on error if you want.'
-        # thoughts are:
-        # - re-queue the item
-        # - don't re-queue the worker
-        # - completely stop everything
-        console.log err.stack
-      .finally ->
-        workers.put(data.worker)
+  # workers = new qqueue()
+  
+  items = []
+  deferreds = []
+  
+  queue = new EventEmitter()
+  
+  check = ->
+    return if items.length is 0 or deferreds.length is 0
     
-      process()
-
-  process()
-
-  {
-    push: (item) -> items.put(item)
-    poll: (fn) -> workers.put(fn)
-  }
+    i = items.pop()
+    d = deferreds.pop()
+    
+    if items.length is 0
+      d.promise.then -> queue.emit('flush')
+    
+    d.resolve(i)
+  
+  queue.push = (item) ->
+    items.push(item)
+    setTimeout(check)
+  
+  queue.pop = ->
+    d = q.defer()
+    
+    deferreds.push(d)
+    setTimeout(check)
+    
+    d.promise
+  
+  queue.__defineGetter__ 'length', -> items.length
+  
+  queue
+  
+  
+  # process = ->
+  #   $q.parallel(
+  #     item: items.get()
+  #     worker: workers.get()
+  #   )
+  #   .then (data) ->
+  #     q.when(data.worker(data.item))
+  #     .catch (err) ->
+  #       console.log 'CAUGHT AN ERROR. Should put an option here to stop on error if you want.'
+  #       # thoughts are:
+  #       # - re-queue the item
+  #       # - don't re-queue the worker
+  #       # - completely stop everything
+  #       console.log err.stack
+  #     .finally ->
+  #       workers.put(data.worker)
+  #   
+  #     process()
+  # 
+  # process()
+  # 
+  # {
+  #   push: (item) -> items.put(item)
+  #   poll: (fn) -> workers.put(fn)
+  # }
