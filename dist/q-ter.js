@@ -181,7 +181,7 @@
       if (items.length === 0 || deferreds.length === 0) {
         return;
       }
-      i = items.pop();
+      i = items.shift();
       d = deferreds.pop();
       if (items.length === 0) {
         d.promise.then(function() {

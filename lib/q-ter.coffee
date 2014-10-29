@@ -182,7 +182,7 @@ $q.queue = ->
   check = ->
     return if items.length is 0 or deferreds.length is 0
     
-    i = items.pop()
+    i = items.shift()
     d = deferreds.pop()
     
     if items.length is 0
