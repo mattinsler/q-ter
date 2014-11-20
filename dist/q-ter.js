@@ -1,13 +1,28 @@
 (function() {
-  var $q, EventEmitter, auto_iteration, err, is_dependency_method, path, q, qqueue;
+  var $q, EventEmitter, auto_iteration, err, is_dependency_method, loadModule, path, q;
 
   path = require('path');
 
   EventEmitter = require('events').EventEmitter;
 
+  loadModule = function(name, lookInPath) {
+    var err;
+    if (lookInPath == null) {
+      lookInPath = process.cwd();
+    }
+    try {
+      return require(path.join(lookInPath, 'node_modules', name));
+    } catch (_error) {
+      err = _error;
+      if (lookInPath === path.sep) {
+        throw err;
+      }
+      return loadModule(name, path.join(lookInPath, '../'));
+    }
+  };
+
   try {
-    q = require(path.join(process.cwd(), 'node_modules', 'q'));
-    qqueue = require(path.join(process.cwd(), 'node_modules', 'q/queue'));
+    q = loadModule('q');
   } catch (_error) {
     err = _error;
     console.log('\nYou must npm install q in order to use q-ter\n');

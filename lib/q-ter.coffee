@@ -1,9 +1,15 @@
 path = require 'path'
 {EventEmitter} = require 'events'
 
+loadModule = (name, lookInPath = process.cwd()) ->
+  try
+    require path.join(lookInPath, 'node_modules', name)
+  catch err
+    throw err if lookInPath is path.sep
+    loadModule(name, path.join(lookInPath, '../'))
+
 try
-  q = require path.join(process.cwd(), 'node_modules', 'q')
-  qqueue = require path.join(process.cwd(), 'node_modules', 'q/queue')
+  q = loadModule('q')
 catch err
   console.log '\nYou must npm install q in order to use q-ter\n'
   throw err
