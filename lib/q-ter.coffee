@@ -16,13 +16,12 @@ catch err
 
 module.exports = $q = {}
 
-$q.map = (arr, iter) ->
+$q.map = (arr, iter, slice = -1) ->
   res = Array(arr.length)
-  q.all(
-    arr.map (item, idx) ->
-      q.when(iter(item)).then (data) ->
-        res[idx] = data
-  ).then ->
+  $q.each(arr, (item, idx) ->
+    q.when(iter(item, idx)).then (data) ->
+      res[idx] = data
+  , slice).then ->
     res
 
 # $q.reduce = (arr, iter, init) ->
@@ -43,7 +42,8 @@ $q.each = (arr, iter, slice = -1) ->
     return if idx is len
         
     ++running
-    q.when(iter(arr[idx++])).then ->
+    current_idx = idx++
+    q.when(iter(arr[current_idx], current_idx)).then ->
       --running
       --not_done
       step()

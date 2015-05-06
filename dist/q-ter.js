@@ -31,14 +31,17 @@
 
   module.exports = $q = {};
 
-  $q.map = function(arr, iter) {
+  $q.map = function(arr, iter, slice) {
     var res;
+    if (slice == null) {
+      slice = -1;
+    }
     res = Array(arr.length);
-    return q.all(arr.map(function(item, idx) {
-      return q.when(iter(item)).then(function(data) {
+    return $q.each(arr, function(item, idx) {
+      return q.when(iter(item, idx)).then(function(data) {
         return res[idx] = data;
       });
-    })).then(function() {
+    }, slice).then(function() {
       return res;
     });
   };
@@ -57,6 +60,7 @@
       slice = len;
     }
     step = function() {
+      var current_idx;
       if (running === slice) {
         return;
       }
@@ -67,7 +71,8 @@
         return;
       }
       ++running;
-      q.when(iter(arr[idx++])).then(function() {
+      current_idx = idx++;
+      q.when(iter(arr[current_idx], current_idx)).then(function() {
         --running;
         --not_done;
         return step();
